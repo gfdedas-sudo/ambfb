@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FB Manager</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+:root{
+  --bg:#0D0D14;--bg2:#13131E;--card:#1A1A28;--card2:#22223A;
+  --blue:#4F8EFF;--fb:#1877F2;--green:#22C55E;--red:#EF4444;
+  --gold:#F59E0B;--binance:#F0B90B;--syp:#8B5CF6;
+  --text:#F8FAFC;--text2:#8892AA;
+  --border:rgba(255,255,255,0.07);--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999}
+.splash-logo{width:80px;height:80px;background:var(--fb);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:42px;color:#fff;font-weight:900;margin-bottom:18px;box-shadow:0 8px 32px rgba(24,119,242,.4)}
+.splash-title{font-size:22px;font-weight:900;margin-bottom:6px}
+.splash-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ شاشة 1: تسجيل الدخول بفيسبوك ══ */
+#screen-login{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center}
+#screen-login.show{display:flex}
+.login-logo{width:82px;height:82px;background:linear-gradient(135deg,#1877F2,#0D5FBF);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;font-weight:900;margin:0 auto 20px;box-shadow:0 8px 28px rgba(24,119,242,.4)}
+.login-title{font-size:21px;font-weight:900;line-height:1.4;margin-bottom:10px}
+.login-desc{font-size:13px;color:var(--text2);margin-bottom:26px;line-height:1.7;max-width:310px}
+.perms{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:22px;width:100%;max-width:340px;text-align:right}
+.perms-title{font-size:11px;color:var(--text2);font-weight:700;letter-spacing:.5px;margin-bottom:8px}
+.perm{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.perm:last-child{border:none;padding-bottom:0}
+.btn-fb-login{background:var(--fb);color:#fff;border:none;border-radius:12px;padding:15px 20px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;width:100%;max-width:340px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 18px rgba(24,119,242,.4);transition:.2s}
+.btn-fb-login:active{transform:scale(.97)}
+.btn-fb-icon{width:28px;height:28px;background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--fb);font-size:17px;font-weight:900;flex-shrink:0}
+#loginSpinner{display:none;flex-direction:column;align-items:center;gap:8px;margin-top:12px}
+.login-note{font-size:11px;color:var(--text2);margin-top:14px;max-width:280px;line-height:1.6}
+
+/* ══ شاشة 2: لا يوجد اشتراك — فقط صفحة الخطط ══ */
+#screen-subscribe{display:none;min-height:100vh;padding:20px 14px 90px}
+#screen-subscribe.show{display:block}
+.sub-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.sub-pic{width:42px;height:42px;border-radius:50%;background:var(--fb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;overflow:hidden;flex-shrink:0}
+.sub-pic img{width:100%;height:100%;object-fit:cover}
+.sub-name{font-size:14px;font-weight:800}
+.sub-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.logout-btn{margin-right:auto;font-size:11px;color:var(--text2);background:transparent;border:1px solid var(--border);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:inherit}
+.welcome-box{text-align:center;padding:16px 14px;margin-bottom:18px;background:linear-gradient(135deg,rgba(79,142,255,.1),rgba(24,119,242,.05));border:1px solid rgba(79,142,255,.2);border-radius:var(--radius)}
+.welcome-title{font-size:17px;font-weight:900;margin-bottom:6px}
+.welcome-desc{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* ══ شاشة 3: التطبيق الكامل ══ */
+#screen-app{display:none}
+#screen-app.show{display:block}
+
+/* Header */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:17px;font-weight:900;display:flex;align-items:center;gap:8px}
+.logo-icon{width:30px;height:30px;background:var(--fb);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:900}
+.badge-days{font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;background:var(--green);color:#000}
+.badge-days.warn{background:var(--gold);color:#000}
+.badge-days.expired{background:var(--red);color:#fff}
+
+/* Pages */
+.page{display:none;padding:14px 14px 90px}.page.active{display:block}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.card-body{padding:14px}
+.section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;margin-top:4px}
+
+/* Stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.stat-num{font-size:26px;font-weight:900;line-height:1;margin-bottom:4px}
+.stat-label{font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+/* Days bar */
+.days-bar-wrap{margin-top:10px}
+.days-bar-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.days-bar-track{height:8px;background:var(--card2);border-radius:10px;overflow:hidden}
+.days-bar-fill{height:100%;border-radius:10px;transition:width .6s;background:linear-gradient(90deg,var(--blue),var(--green))}
+.days-bar-fill.warn{background:linear-gradient(90deg,var(--gold),var(--red))}
+
+/* Buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border:none;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:.2s;width:100%}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-fb{background:var(--fb);color:#fff}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn-syp{background:var(--syp);color:#fff}
+.btn-binance{background:var(--binance);color:#000}
+.btn:active{opacity:.85;transform:scale(.98)}
+.btn-sm{padding:7px 12px;font-size:12px;border-radius:8px;width:auto}
+
+/* Inputs */
+.inp-wrap{margin-bottom:10px}
+.inp-label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block;font-weight:600}
+.inp{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;width:100%;transition:.2s}
+.inp:focus{border-color:var(--blue)}
+.inp::placeholder{color:var(--text2)}
+textarea.inp{resize:none}
+select.inp{cursor:pointer}
+
+/* Lists */
+.list-item{padding:12px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s}
+.list-item:last-child{border:none}
+.list-item:active{background:var(--card2)}
+.item-avatar{width:42px;height:42px;border-radius:10px;background:var(--fb);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;overflow:hidden;color:#fff;font-weight:900}
+.item-avatar img{width:100%;height:100%;object-fit:cover}
+.item-name{font-size:14px;font-weight:700}
+.item-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.item-arrow{margin-right:auto;color:var(--text2);font-size:20px;flex-shrink:0}
+.rules-badge{font-size:10px;background:var(--blue);color:#fff;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block}
+
+/* Rules */
+.rule-item{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.rule-item:last-child{border:none}
+.rule-kw{font-size:13px;font-weight:800;color:var(--blue);font-family:monospace}
+.rule-reply{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.rule-type-badge{font-size:10px;background:var(--card2);color:var(--text2);padding:2px 7px;border-radius:20px;border:1px solid var(--border);display:inline-block;margin-top:4px}
+.rule-actions{margin-right:auto;display:flex;gap:6px;align-items:center}
+.toggle{width:40px;height:22px;border-radius:11px;background:var(--border);position:relative;cursor:pointer;transition:.2s;flex-shrink:0}
+.toggle.on{background:var(--blue)}
+.toggle-dot{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;right:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.toggle.on .toggle-dot{right:auto;left:3px}
+
+/* Plans */
+.plan-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;cursor:pointer;transition:.2s;position:relative}
+.plan-card:active{transform:scale(.98)}
+.plan-card.selected{border-color:var(--blue);background:rgba(79,142,255,.08)}
+.plan-card.popular::before{content:'الأكثر شيوعاً';position:absolute;top:-1px;left:16px;background:var(--gold);color:#000;font-size:10px;font-weight:800;padding:2px 10px;border-radius:0 0 8px 8px}
+.plan-card.best::before{content:'أفضل قيمة';position:absolute;top:-1px;left:16px;background:var(--green);color:#000;font-size:10px;font-weight:800;padding:2px 10px;border-radius:0 0 8px 8px}
+.plan-name{font-size:16px;font-weight:800;margin-bottom:4px}
+.plan-usd{font-size:22px;font-weight:900;color:var(--gold)}
+.plan-syp{font-size:12px;color:var(--text2);margin-top:2px}
+.plan-features{font-size:12px;color:var(--text2);margin-top:6px}
+
+/* Pay */
+.pay-method{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.pay-method:active{transform:scale(.98)}
+.pay-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pay-name{font-size:14px;font-weight:700}
+.pay-desc{font-size:11px;color:var(--text2);margin-top:2px}
+.calc-box{background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(79,142,255,.08));border:1px solid rgba(139,92,246,.25);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.calc-title{font-size:12px;font-weight:700;color:var(--syp);margin-bottom:10px}
+.calc-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.calc-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+.calc-amount{font-size:22px;font-weight:900;color:var(--syp)}
+.addr-box{background:var(--card2);border-radius:8px;padding:10px;margin:8px 0;font-family:monospace;font-size:12px;color:var(--blue);border:1px solid var(--border);word-break:break-all}
+.step{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-text{font-size:13px;line-height:1.6}
+
+/* Modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:flex-end}
+.modal.show{display:flex}
+.modal-box{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px 16px 40px;width:100%;max-height:92vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:10px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:14px}
+
+/* Toast */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);padding:9px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;opacity:0;transition:.3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;padding:8px 0 16px;z-index:100}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.bnav-icon{font-size:20px}
+.bnav-label{font-size:10px;font-weight:600;color:var(--text2)}
+.bnav-item.active .bnav-label{color:var(--blue)}
+.bnav-item.active .bnav-icon{transform:scale(1.1)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-icon{font-size:46px;margin-bottom:10px}
+.back-btn{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">f</div>
+  <div class="splash-title">FB Manager</div>
+  <div class="splash-sub">ردود تلقائية لصفحاتك</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- ══ الشاشة 1: تسجيل الدخول بفيسبوك ══ -->
+<div id="screen-login">
+  <div class="login-logo">f</div>
+  <div class="login-title">سجّل دخولك بفيسبوك<br>لإدارة ردود صفحاتك</div>
+  <div class="login-desc">اربط حسابك وابدأ بإعداد ردود تلقائية ذكية لجميع صفحاتك</div>
+
+  <div class="perms">
+    <div class="perms-title">الأذونات المطلوبة</div>
+    <div class="perm"><span style="font-size:18px">📄</span><span>عرض قائمة صفحاتك</span></div>
+    <div class="perm"><span style="font-size:18px">💬</span><span>قراءة التعليقات والردود</span></div>
+    <div class="perm"><span style="font-size:18px">🔒</span><span>بياناتك آمنة ولن تُشارك</span></div>
+  </div>
+
+  <button class="btn-fb-login" id="btnLogin" onclick="startOAuth()">
+    <div class="btn-fb-icon">f</div>
+    متابعة مع فيسبوك
+  </button>
+  <div id="loginSpinner">
+    <div class="spinner"></div>
+    <div style="font-size:12px;color:var(--text2)">جاري فتح صفحة فيسبوك...</div>
+  </div>
+  <div class="login-note">ستُحوَّل لصفحة فيسبوك الرسمية لتسجيل الدخول</div>
+</div>
+
+<!-- ══ الشاشة 2: لا يوجد اشتراك (بعد تسجيل فيسبوك) ══ -->
+<div id="screen-subscribe">
+  <div class="sub-header">
+    <div class="sub-pic" id="subUserPic">f</div>
+    <div>
+      <div class="sub-name" id="subUserName">—</div>
+      <div class="sub-sub">مربوط بفيسبوك ✅</div>
+    </div>
+    <button class="logout-btn" onclick="doFbLogout()">خروج</button>
+  </div>
+
+  <div class="welcome-box">
+    <div class="welcome-title">👋 أهلاً بك!</div>
+    <div class="welcome-desc">للبدء بإدارة ردود صفحاتك التلقائية،<br>اشترك في إحدى الخطط أدناه</div>
+  </div>
+
+  <p class="section-title">📦 اختر الخطة المناسبة</p>
+  <div id="subPlansList"></div>
+</div>
+
+<!-- ══ الشاشة 3: التطبيق الرئيسي (له اشتراك) ══ -->
+<div id="screen-app">
+  <div class="header">
+    <div class="logo"><div class="logo-icon">f</div>FB Manager</div>
+    <span class="badge-days" id="daysBadge">—</span>
+  </div>
+
+  <div class="page active" id="pageHome">
+    <div class="card" style="border-color:var(--green)">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+          <div class="sub-pic" id="homeUserPic" style="width:38px;height:38px;font-size:18px">f</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:800" id="homeUserName">—</div>
+            <div style="font-size:11px;color:var(--text2)" id="homePlanName">—</div>
+          </div>
+          <button class="logout-btn" onclick="doFbLogout()">خروج</button>
+        </div>
+        <div class="days-bar-wrap">
+          <div class="days-bar-top">
+            <span style="color:var(--text2)">متبقي من الاشتراك</span>
+            <span style="font-weight:800" id="daysText">—</span>
+          </div>
+          <div class="days-bar-track"><div class="days-bar-fill" id="daysBar" style="width:0%"></div></div>
+          <div style="font-size:10px;color:var(--text2);margin-top:4px" id="expiryText">—</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-title">نظرة عامة</p>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="statPages">0</div><div class="stat-label">صفحات</div></div>
+      <div class="stat-card"><div class="stat-num" id="statRules">0</div><div class="stat-label">قواعد نشطة</div></div>
+    </div>
+
+    <p class="section-title">إجراءات سريعة</p>
+    <div class="card">
+      <div class="list-item" onclick="goPage('pagePages');setNav('pages');loadPages()">
+        <div class="item-avatar">📄</div>
+        <div><div class="item-name">صفحاتي</div><div class="item-sub">إدارة الصفحات المربوطة</div></div>
+        <div class="item-arrow">›</div>
+      </div>
+      <div class="list-item" onclick="goPage('pageRules');setNav('rules');loadAllRules()">
+        <div class="item-avatar" style="background:rgba(79,142,255,.2)">⚡</div>
+        <div><div class="item-name">قواعد الردود</div><div class="item-sub">إدارة جميع القواعد</div></div>
+        <div class="item-arrow">›</div>
+      </div>
+      <div class="list-item" onclick="goPage('pagePlans');setNav('plans');loadPlans()">
+        <div class="item-avatar" style="background:rgba(245,158,11,.2)">💳</div>
+        <div><div class="item-name">تجديد الاشتراك</div><div class="item-sub">تمديد أو ترقية خطتك</div></div>
+        <div class="item-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- صفحاتي -->
+  <div class="page" id="pagePages">
+    <p class="section-title">صفحاتك المربوطة</p>
+    <div id="pagesList"><div class="empty"><div class="empty-icon">📄</div><p>جاري التحميل...</p></div></div>
+    <br>
+    <button class="btn btn-fb" onclick="syncPages()">🔄 تحديث قائمة الصفحات</button>
+  </div>
+
+  <!-- منشورات -->
+  <div class="page" id="pagePosts">
+    <div class="back-btn">
+      <button class="btn btn-ghost btn-sm" onclick="goPage('pagePages')" style="width:auto">‹ رجوع</button>
+      <span style="font-size:15px;font-weight:800" id="currentPageName">—</span>
+    </div>
+    <p class="section-title">اختر منشوراً</p>
+    <div id="postsList"><div class="empty"><div class="empty-icon">⏳</div><p>جاري التحميل...</p></div></div>
+  </div>
+
+  <!-- قواعد منشور -->
+  <div class="page" id="pagePostRules">
+    <div class="back-btn">
+      <button class="btn btn-ghost btn-sm" onclick="goPage('pagePosts')" style="width:auto">‹ رجوع</button>
+      <span style="font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="currentPostPreview">—</span>
+    </div>
+    <div id="postRulesList"></div>
+    <br>
+    <button class="btn btn-primary" onclick="openAddRule(currentPageId,currentPostId)">➕ إضافة قاعدة رد</button>
+  </div>
+
+  <!-- كل القواعد -->
+  <div class="page" id="pageRules">
+    <p class="section-title">جميع القواعد</p>
+    <div id="allRulesList"><div class="empty"><div class="empty-icon">⚡</div><p>لا توجد قواعد</p></div></div>
+    <br>
+    <button class="btn btn-primary" onclick="openAddRule('','')">➕ إضافة قاعدة</button>
+  </div>
+
+  <!-- الاشتراك (تجديد) -->
+  <div class="page" id="pagePlans">
+    <div id="plansSection">
+      <p class="section-title">تجديد / ترقية</p>
+      <div id="plansList"></div>
+    </div>
+    <div id="paySection" style="display:none">
+      <div class="back-btn">
+        <button class="btn btn-ghost btn-sm" onclick="backToPlans()" style="width:auto">‹ رجوع</button>
+        <span style="font-size:14px;font-weight:800" id="selectedPlanLabel">—</span>
+      </div>
+      <p class="section-title">اختر طريقة الدفع</p>
+      <div class="pay-method" onclick="showPayForm('shamcash_usd')">
+        <div class="pay-icon" style="background:rgba(34,197,94,.15)">💚</div>
+        <div><div class="pay-name">شام كاش — USD</div><div class="pay-desc">ادفع بالدولار</div></div>
+        <div style="margin-right:auto;color:var(--text2);font-size:20px">›</div>
+      </div>
+      <div class="pay-method" onclick="showPayForm('shamcash_syp')">
+        <div class="pay-icon" style="background:rgba(139,92,246,.15)">💴</div>
+        <div><div class="pay-name">شام كاش — ليرة سورية</div><div class="pay-desc" id="sypHint">—</div></div>
+        <div style="margin-right:auto;color:var(--text2);font-size:20px">›</div>
+      </div>
+      <div class="pay-method" onclick="showPayForm('binance')">
+        <div class="pay-icon" style="background:rgba(240,185,11,.15)">🟡</div>
+        <div><div class="pay-name">بينانس USDT</div><div class="pay-desc">ارفع إيصال التحويل</div></div>
+        <div style="margin-right:auto;color:var(--text2);font-size:20px">›</div>
+      </div>
+    </div>
+    <div id="payForm" style="display:none">
+      <div class="back-btn">
+        <button class="btn btn-ghost btn-sm" onclick="backToMethods()" style="width:auto">‹ رجوع</button>
+        <span style="font-size:14px;font-weight:800" id="payFormTitle">—</span>
+      </div>
+      <div id="form_shamcash_usd" style="display:none">
+        <div class="step"><div class="step-num">1</div><div class="step-text">افتح تطبيق شام كاش</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">اختر عملة <b>USD</b> وحوّل:<br><b id="usdLbl" style="color:var(--green);font-size:18px">—</b></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">إلى العنوان:<div class="addr-box" id="addrUsd">—</div></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">أرسل <b>Transaction ID</b>:</div></div>
+        <div class="inp-wrap"><input class="inp" id="txUsd" placeholder="Transaction ID"></div>
+        <button class="btn btn-green" onclick="payShamcash('usd')">✅ تحقق وفعّل</button>
+      </div>
+      <div id="form_shamcash_syp" style="display:none">
+        <div class="calc-box">
+          <div class="calc-title">🧮 حاسبة الليرة</div>
+          <div class="calc-row"><span>بالدولار</span><span id="cUsd" style="font-weight:700">—</span></div>
+          <div class="calc-row"><span>سعر الصرف</span><span id="cRate" style="color:var(--text2)">—</span></div>
+          <div class="calc-total"><span style="font-weight:700">بالليرة</span><div class="calc-amount" id="cSyp">—</div></div>
+        </div>
+        <div class="step"><div class="step-num">1</div><div class="step-text">افتح شام كاش</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">اختر <b>SYP</b> وحوّل:<br><b id="sypLbl" style="color:var(--syp);font-size:18px">—</b></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">إلى:<div class="addr-box" id="addrSyp">—</div></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">أرسل <b>Transaction ID</b>:</div></div>
+        <div class="inp-wrap"><input class="inp" id="txSyp" placeholder="Transaction ID"></div>
+        <button class="btn btn-syp" onclick="payShamcash('syp')">✅ تحقق وفعّل</button>
+      </div>
+      <div id="form_binance" style="display:none">
+        <div class="step"><div class="step-num">1</div><div class="step-text">افتح تطبيق <b>Binance</b></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">ID:<div class="addr-box" id="binId">—</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">حوّل <b>USDT</b>:<br><b id="binAmt" style="color:var(--binance);font-size:18px">—</b></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">ارجع للبوت وارفع الإيصال</div></div>
+        <button class="btn btn-binance" onclick="if(tg)tg.close()">📲 العودة للبوت</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="bnav-item active" id="bnav-home" onclick="goPage('pageHome');setNav('home')">
+      <div class="bnav-icon">🏠</div><div class="bnav-label">الرئيسية</div>
+    </div>
+    <div class="bnav-item" id="bnav-pages" onclick="goPage('pagePages');setNav('pages');loadPages()">
+      <div class="bnav-icon">📄</div><div class="bnav-label">صفحاتي</div>
+    </div>
+    <div class="bnav-item" id="bnav-rules" onclick="goPage('pageRules');setNav('rules');loadAllRules()">
+      <div class="bnav-icon">⚡</div><div class="bnav-label">القواعد</div>
+    </div>
+    <div class="bnav-item" id="bnav-plans" onclick="goPage('pagePlans');setNav('plans');loadPlans()">
+      <div class="bnav-icon">💳</div><div class="bnav-label">تجديد</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: إضافة قاعدة -->
+<div class="modal" id="ruleModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ إضافة قاعدة رد تلقائي</div>
+    <input type="hidden" id="rulePageId">
+    <input type="hidden" id="rulePostId">
+    <div class="inp-wrap">
+      <label class="inp-label">الكلمة المفتاحية <span style="color:var(--text2);font-weight:400">(فارغة = الكل)</span></label>
+      <input class="inp" id="ruleKw" placeholder="مثال: السعر، متاح؟">
+    </div>
+    <div class="inp-wrap">
+      <label class="inp-label">نص الرد</label>
+      <textarea class="inp" id="ruleReply" rows="3" placeholder="مثال: سعر المنتج 500 ل.س 📩"></textarea>
+    </div>
+    <div class="inp-wrap">
+      <label class="inp-label">نوع الرد</label>
+      <select class="inp" id="ruleType">
+        <option value="comment">💬 رد على التعليق</option>
+        <option value="dm">📩 رسالة خاصة</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="submitRule()">✅ إضافة</button>
+      <button class="btn btn-ghost" onclick="closeModal('ruleModal')" style="flex:0.5">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ BOT_API — نفس نطاق المتجر api.ambstore963.us مع مسار /fb ══
+var BOT_API = (function(){
+  var host = window.location.hostname;
+  if(host.includes('github.io') || host.includes('ambstore')){
+    return 'https://api.ambstore963.us/fb';  // نفس سيرفر المتجر — مسار /fb منفصل
+  }
+  return window.location.origin;
+})();
+
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.expand(); tg.setHeaderColor('#0D0D14'); tg.setBackgroundColor('#0D0D14'); }
+
+const params = new URLSearchParams(window.location.search);
+let UID = params.get('uid') || tg?.initDataUnsafe?.user?.id?.toString() || '';
+
+let plansData={}, shamAddr='', binanceId='', exRate=13000;
+let selectedPlan=null, currentPageId='', currentPageToken='', currentPostId='';
+let userPages=[], currentStatus=null;
+
+// ══ Toast ══
+let toastT;
+function toast(msg,color='#22C55E',tc='#000'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.background=color;el.style.color=tc;
+  el.classList.add('show');clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function goPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id)?.classList.add('active')}
+function setNav(k){document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));document.getElementById('bnav-'+k)?.classList.add('active')}
+
+// ══ التحويل بين الشاشات ══
+function showLoginScreen(){
+  document.getElementById('splash').style.display='none';
+  document.getElementById('screen-login').classList.add('show');
+  document.getElementById('screen-subscribe').classList.remove('show');
+  document.getElementById('screen-app').classList.remove('show');
+}
+
+function showSubscribeScreen(status){
+  document.getElementById('splash').style.display='none';
+  document.getElementById('screen-login').classList.remove('show');
+  document.getElementById('screen-subscribe').classList.add('show');
+  document.getElementById('screen-app').classList.remove('show');
+
+  // بيانات فيسبوك
+  const fb = status.fb_user || {};
+  document.getElementById('subUserName').textContent = fb.fb_name || 'مستخدم';
+  if(fb.fb_picture){
+    document.getElementById('subUserPic').innerHTML = `<img src="${fb.fb_picture}">`;
+  }
+  // تحميل الخطط
+  loadPlansForSubscribe();
+}
+
+function showMainApp(status){
+  document.getElementById('splash').style.display='none';
+  document.getElementById('screen-login').classList.remove('show');
+  document.getElementById('screen-subscribe').classList.remove('show');
+  document.getElementById('screen-app').classList.add('show');
+
+  currentStatus = status;
+  userPages     = status.pages || [];
+
+  // بيانات فيسبوك
+  const fb = status.fb_user || {};
+  document.getElementById('homeUserName').textContent = fb.fb_name || 'مستخدم';
+  if(fb.fb_picture){
+    const img = `<img src="${fb.fb_picture}">`;
+    document.getElementById('homeUserPic').innerHTML = img;
+  }
+
+  // بيانات الاشتراك
+  const sub  = status.sub || {};
+  const left = status.days_left || 0;
+  const total = {monthly:30,bimonthly:60,quarterly:90,semiannual:180,yearly:365}[sub.plan] || 30;
+  const pct  = Math.min(100,Math.round((left/total)*100));
+
+  document.getElementById('homePlanName').textContent = `${sub.plan_name || '—'} · نشط`;
+  document.getElementById('daysText').textContent     = `${left} يوم`;
+  document.getElementById('expiryText').textContent   = `ينتهي: ${(sub.expires||'').substring(0,10)}`;
+
+  const badge = document.getElementById('daysBadge');
+  badge.textContent = `${left}د`;
+  badge.className   = 'badge-days' + (left<=7?' warn':(left<=3?' expired':''));
+
+  const bar = document.getElementById('daysBar');
+  bar.style.width = pct+'%';
+  bar.classList.toggle('warn', left<=7);
+
+  document.getElementById('statPages').textContent = userPages.length;
+}
+
+// ══ Init ══
+async function init(){
+  if(!UID){
+    toast('❌ افتح التطبيق من تيليغرام','#EF4444','#fff');
+    return;
+  }
+  try{
+    const r = await fetch(`${BOT_API}/api/status/${UID}`);
+    if(!r.ok) throw new Error('server');
+    const status = await r.json();
+
+    // الشرط الأول: هل مسجل بفيسبوك؟
+    if(!status.fb_connected){
+      showLoginScreen();
+      return;
+    }
+
+    // الشرط الثاني: هل عنده اشتراك؟
+    if(!status.sub_active){
+      showSubscribeScreen(status);
+      return;
+    }
+
+    // عنده كل شيء → التطبيق الكامل
+    showMainApp(status);
+    await loadAllRules();
+
+  }catch(e){
+    toast('خطأ في الاتصال بالسيرفر','#EF4444','#fff');
+    showLoginScreen();
+  }
+}
+
+// ══ Facebook OAuth ══
+async function startOAuth(){
+  document.getElementById('btnLogin').style.display='none';
+  document.getElementById('loginSpinner').style.display='flex';
+  try{
+    const d = await(await fetch(`${BOT_API}/api/oauth/url/${UID}`)).json();
+    if(d.success){
+      if(tg?.openLink) tg.openLink(d.url);
+      else window.open(d.url,'_blank');
+      toast('📱 أكمل الدخول في المتصفح','#4F8EFF','#fff');
+      // polling
+      let tries=0;
+      const iv = setInterval(async()=>{
+        tries++;
+        try{
+          const r = await fetch(`${BOT_API}/api/status/${UID}`);
+          const s = await r.json();
+          if(s.fb_connected){
+            clearInterval(iv);
+            toast('✅ تم ربط حسابك!');
+            // عرض الشاشة المناسبة
+            if(s.sub_active) showMainApp(s);
+            else showSubscribeScreen(s);
+          }
+        }catch(e){}
+        if(tries>=30){
+          clearInterval(iv);
+          document.getElementById('btnLogin').style.display='flex';
+          document.getElementById('loginSpinner').style.display='none';
+          toast('انتهت المهلة، حاول مجدداً','#EF4444','#fff');
+        }
+      },3000);
+    } else {
+      toast(d.error||'خطأ','#EF4444','#fff');
+      document.getElementById('btnLogin').style.display='flex';
+      document.getElementById('loginSpinner').style.display='none';
+    }
+  }catch(e){
+    toast('خطأ','#EF4444','#fff');
+    document.getElementById('btnLogin').style.display='flex';
+    document.getElementById('loginSpinner').style.display='none';
+  }
+}
+
+function doFbLogout(){
+  if(!confirm('تسجيل الخروج من فيسبوك؟\nسيتم فصل جميع الصفحات.'))return;
+  fetch(`${BOT_API}/api/fb/logout`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({uid:UID})
+  }).then(()=>{
+    toast('✅ تم تسجيل الخروج');
+    document.getElementById('btnLogin').style.display='flex';
+    document.getElementById('loginSpinner').style.display='none';
+    showLoginScreen();
+  });
+}
+
+// ══ الخطط في شاشة الاشتراك ══
+async function loadPlansForSubscribe(){
+  try{
+    const d = await(await fetch(`${BOT_API}/api/plans`)).json();
+    plansData = d.plans || {};
+    shamAddr  = d.shamcash_addr || '';
+    binanceId = d.binance_id || '';
+    exRate    = d.exchange_rate || 13000;
+
+    const list = document.getElementById('subPlansList');
+    list.innerHTML = Object.entries(plansData).map(([k,p])=>{
+      const tag = k==='quarterly'?' popular' : (k==='yearly'?' best':'');
+      return `
+      <div class="plan-card${tag}" onclick="selectPlanFromSubscribe('${k}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="plan-name">${p.emoji} ${p.name}</div>
+          <div style="text-align:left">
+            <div class="plan-usd">$${p.price_usd}</div>
+            <div class="plan-syp">${(p.price_syp||0).toLocaleString()} ل.س</div>
+          </div>
+        </div>
+        <div class="plan-features">📄 ${p.pages>=999?'غير محدود':p.pages} صفحات · ⚡ ${p.rules>=999?'غير محدود':p.rules} قاعدة · 📅 ${p.days} يوم</div>
+      </div>`;
+    }).join('');
+  }catch(e){toast('خطأ','#EF4444','#fff');}
+}
+
+function selectPlanFromSubscribe(k){
+  // ننتقل للتطبيق الكامل لكن نبقى على صفحة الخطط مباشرة
+  selectedPlan = k;
+  document.getElementById('screen-subscribe').classList.remove('show');
+  document.getElementById('screen-app').classList.add('show');
+
+  // إظهار هيدر وشريط سفلي في حالة ما عنده اشتراك
+  document.getElementById('daysBadge').textContent = '❌ منتهي';
+  document.getElementById('daysBadge').className = 'badge-days expired';
+
+  goPage('pagePlans');
+  setNav('plans');
+  loadPlans();
+  // نحدد الخطة مباشرة
+  setTimeout(()=>selectPlan(k), 300);
+}
+
+// ══ الخطط داخل التطبيق (تجديد) ══
+async function loadPlans(){
+  try{
+    const d = await(await fetch(`${BOT_API}/api/plans`)).json();
+    plansData = d.plans || {};
+    shamAddr  = d.shamcash_addr || '';
+    binanceId = d.binance_id || '';
+    exRate    = d.exchange_rate || 13000;
+
+    document.getElementById('plansSection').style.display='block';
+    document.getElementById('paySection').style.display='none';
+    document.getElementById('payForm').style.display='none';
+
+    document.getElementById('plansList').innerHTML = Object.entries(plansData).map(([k,p])=>{
+      const tag = k==='quarterly'?' popular' : (k==='yearly'?' best':'');
+      return `
+      <div class="plan-card${tag}" id="plan_${k}" onclick="selectPlan('${k}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="plan-name">${p.emoji} ${p.name}</div>
+          <div style="text-align:left">
+            <div class="plan-usd">$${p.price_usd}</div>
+            <div class="plan-syp">${(p.price_syp||0).toLocaleString()} ل.س</div>
+          </div>
+        </div>
+        <div class="plan-features">📄 ${p.pages>=999?'غير محدود':p.pages} صفحات · ⚡ ${p.rules>=999?'غير محدود':p.rules} قاعدة · 📅 ${p.days} يوم</div>
+      </div>`;
+    }).join('');
+  }catch(e){toast('خطأ','#EF4444','#fff');}
+}
+
+function selectPlan(k){
+  selectedPlan = k;
+  const p = plansData[k];
+  if(!p) return;
+  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('plan_'+k)?.classList.add('selected');
+  document.getElementById('plansSection').style.display='none';
+  document.getElementById('paySection').style.display='block';
+  document.getElementById('payForm').style.display='none';
+  document.getElementById('selectedPlanLabel').textContent = `${p.emoji} ${p.name} — $${p.price_usd}`;
+  const syp = (p.price_syp || (p.price_usd*exRate)).toLocaleString();
+  document.getElementById('sypHint').textContent = `ادفع ${syp} ل.س`;
+}
+
+function backToPlans(){
+  document.getElementById('plansSection').style.display='block';
+  document.getElementById('paySection').style.display='none';
+  document.getElementById('payForm').style.display='none';
+}
+function backToMethods(){
+  document.getElementById('paySection').style.display='block';
+  document.getElementById('payForm').style.display='none';
+}
+
+function showPayForm(m){
+  if(!selectedPlan){toast('اختر خطة أولاً','#F59E0B','#000');return;}
+  const p = plansData[selectedPlan];
+  const syp = p.price_syp || (p.price_usd*exRate);
+  document.getElementById('paySection').style.display='none';
+  document.getElementById('payForm').style.display='block';
+  ['form_shamcash_usd','form_shamcash_syp','form_binance'].forEach(id=>document.getElementById(id).style.display='none');
+  if(m==='shamcash_usd'){
+    document.getElementById('payFormTitle').textContent='💚 شام كاش — USD';
+    document.getElementById('usdLbl').textContent = `$${p.price_usd}`;
+    document.getElementById('addrUsd').textContent = shamAddr;
+    document.getElementById('form_shamcash_usd').style.display='block';
+  } else if(m==='shamcash_syp'){
+    document.getElementById('payFormTitle').textContent='💴 شام كاش — ليرة';
+    document.getElementById('cUsd').textContent = `$${p.price_usd}`;
+    document.getElementById('cRate').textContent = `${exRate.toLocaleString()} ل.س`;
+    document.getElementById('cSyp').textContent = `${syp.toLocaleString()} ل.س`;
+    document.getElementById('sypLbl').textContent = `${syp.toLocaleString()} ل.س`;
+    document.getElementById('addrSyp').textContent = shamAddr;
+    document.getElementById('form_shamcash_syp').style.display='block';
+  } else if(m==='binance'){
+    document.getElementById('payFormTitle').textContent='🟡 بينانس';
+    document.getElementById('binId').textContent = binanceId;
+    document.getElementById('binAmt').textContent = `$${p.price_usd} USDT`;
+    document.getElementById('form_binance').style.display='block';
+  }
+}
+
+async function payShamcash(cur){
+  const txId = document.getElementById(cur==='usd'?'txUsd':'txSyp').value.trim();
+  if(!txId){toast('أدخل رقم العملية','#EF4444','#fff');return;}
+  toast('⏳ جاري التحقق...');
+  try{
+    const d = await(await fetch(`${BOT_API}/api/pay/shamcash`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid:UID,tx_id:txId,plan:selectedPlan,currency:cur.toUpperCase()})
+    })).json();
+    if(d.success){
+      toast('✅ تم تفعيل الاشتراك!');
+      document.getElementById(cur==='usd'?'txUsd':'txSyp').value='';
+      // تحديث الحالة كاملة
+      setTimeout(async()=>{
+        const r = await fetch(`${BOT_API}/api/status/${UID}`);
+        const s = await r.json();
+        // مزامنة الصفحات تلقائياً
+        fetch(`${BOT_API}/api/pages/sync`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({uid:UID})
+        }).finally(()=>{
+          showMainApp(s);
+          goPage('pageHome');setNav('home');
+        });
+      },1200);
+    } else {
+      toast(d.error||'فشل','#EF4444','#fff');
+    }
+  }catch(e){toast('خطأ','#EF4444','#fff');}
+}
+
+// ══ الصفحات ══
+async function loadPages(){
+  try{
+    const d = await(await fetch(`${BOT_API}/api/pages/${UID}`)).json();
+    userPages = d.pages || [];
+    renderPages();
+    document.getElementById('statPages').textContent = userPages.length;
+  }catch(e){}
+}
+
+async function syncPages(){
+  toast('🔄 جاري المزامنة...');
+  try{
+    const d = await(await fetch(`${BOT_API}/api/pages/sync`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid:UID})
+    })).json();
+    if(d.success){
+      userPages = d.pages || [];
+      renderPages();
+      toast(`✅ ${userPages.length} صفحة`);
+    } else {
+      toast(d.error||'فشل','#EF4444','#fff');
+    }
+  }catch(e){toast('خطأ','#EF4444','#fff');}
+}
+
+function renderPages(){
+  const el = document.getElementById('pagesList');
+  if(!userPages.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📄</div><p>لا توجد صفحات — اضغط تحديث</p></div>';
+    return;
+  }
+  el.innerHTML = userPages.map(p=>`
+    <div class="card"><div class="list-item" onclick="openPage('${p.id}','${encodeURIComponent(p.access_token||'')}','${encodeURIComponent(p.name||'')}')">
+      <div class="item-avatar">${p.picture?.data?.url?`<img src="${p.picture.data.url}">`:'f'}</div>
+      <div><div class="item-name">${p.name||'صفحة'}</div><div class="item-sub">${p.fan_count?(+p.fan_count).toLocaleString()+' متابع':'صفحة فيسبوك'}</div></div>
+      <div class="item-arrow">›</div>
+    </div></div>`).join('');
+}
+
+function openPage(pid,pt,pname){
+  currentPageId = pid;
+  currentPageToken = decodeURIComponent(pt);
+  document.getElementById('currentPageName').textContent = decodeURIComponent(pname);
+  goPage('pagePosts');
+  loadPosts();
+}
+
+async function loadPosts(){
+  const el = document.getElementById('postsList');
+  el.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>جاري التحميل...</p></div>';
+  try{
+    const d = await(await fetch(`${BOT_API}/api/posts`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid:UID,page_id:currentPageId,page_token:currentPageToken})
+    })).json();
+    if(!d.success||!d.posts?.length){
+      el.innerHTML='<div class="empty"><div class="empty-icon">📝</div><p>لا توجد منشورات</p></div>';
+      return;
+    }
+    const rules = await fetchRules();
+    el.innerHTML = d.posts.map(p=>{
+      const pid = p.id.split('_')[1]||p.id;
+      const cnt = rules.filter(r=>r.post_id===pid).length;
+      const preview = (p.message||'منشور بصورة').substring(0,60);
+      const date = p.created_time?new Date(p.created_time).toLocaleDateString('ar'):'';
+      return `<div class="card"><div class="list-item" onclick="openPost('${p.id}','${encodeURIComponent(preview)}')">
+        <div class="item-avatar" style="background:var(--card2)">${p.full_picture?`<img src="${p.full_picture}">`:'📝'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="item-name" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div>
+          <div class="item-sub">${date}</div>
+          ${cnt?`<span class="rules-badge">⚡ ${cnt} قاعدة</span>`:''}
+        </div>
+        <div class="item-arrow">›</div>
+      </div></div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="empty"><div class="empty-icon">❌</div><p>خطأ</p></div>';}
+}
+
+function openPost(pfid,preview){
+  currentPostId = pfid.split('_')[1]||pfid;
+  document.getElementById('currentPostPreview').textContent = decodeURIComponent(preview);
+  goPage('pagePostRules');
+  loadPostRules();
+}
+
+// ══ القواعد ══
+async function fetchRules(){
+  try{return(await(await fetch(`${BOT_API}/api/rules/${UID}`)).json()).rules||[];}catch(e){return[];}
+}
+
+async function loadPostRules(){
+  const rules = await fetchRules();
+  renderRules('postRulesList', rules.filter(r=>(!r.post_id||r.post_id===currentPostId)&&(!r.page_id||r.page_id===currentPageId)));
+}
+
+async function loadAllRules(){
+  const rules = await fetchRules();
+  document.getElementById('statRules').textContent = rules.filter(r=>r.enabled).length;
+  renderRules('allRulesList', rules);
+}
+
+function renderRules(cid,rules){
+  const el = document.getElementById(cid);
+  if(!rules.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">⚡</div><p>لا توجد قواعد</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="card">'+rules.map(r=>`
+    <div class="rule-item">
+      <div style="flex:1;min-width:0">
+        <div class="rule-kw">${r.keyword||'🌐 جميع التعليقات'}</div>
+        <div style="font-size:10px;color:var(--text2);margin:2px 0">↓</div>
+        <div class="rule-reply">${r.reply}</div>
+        <span class="rule-type-badge">${r.reply_type==='dm'?'📩 رسالة خاصة':'💬 رد تعليق'}</span>
+      </div>
+      <div class="rule-actions">
+        <div class="toggle ${r.enabled?'on':''}" onclick="toggleRule('${r.id}',this)"><div class="toggle-dot"></div></div>
+        <button class="btn btn-red btn-sm" onclick="deleteRule('${r.id}')">🗑</button>
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+function openAddRule(pid,postId){
+  document.getElementById('rulePageId').value = pid||currentPageId;
+  document.getElementById('rulePostId').value = postId||currentPostId;
+  document.getElementById('ruleKw').value = '';
+  document.getElementById('ruleReply').value = '';
+  document.getElementById('ruleType').value = 'comment';
+  openModal('ruleModal');
+}
+
+async function submitRule(){
+  const kw = document.getElementById('ruleKw').value.trim();
+  const reply = document.getElementById('ruleReply').value.trim();
+  const type = document.getElementById('ruleType').value;
+  const pageId = document.getElementById('rulePageId').value;
+  const postId = document.getElementById('rulePostId').value;
+  if(!reply){toast('أدخل نص الرد','#EF4444','#fff');return;}
+  try{
+    const d = await(await fetch(`${BOT_API}/api/rules/add`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid:UID,keyword:kw,reply,reply_type:type,page_id:pageId,post_id:postId})
+    })).json();
+    if(d.success){
+      closeModal('ruleModal');
+      toast('✅ تمت الإضافة');
+      if(postId) loadPostRules(); else loadAllRules();
+    } else {
+      toast(d.error||'فشل','#EF4444','#fff');
+    }
+  }catch(e){toast('خطأ','#EF4444','#fff');}
+}
+
+async function toggleRule(rid,el){
+  try{
+    const d = await(await fetch(`${BOT_API}/api/rules/toggle`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid:UID,rule_id:rid})
+    })).json();
+    if(d.success){el.classList.toggle('on',d.enabled);toast(d.enabled?'✅ مفعّلة':'⏸ موقوفة');}
+  }catch(e){}
+}
+
+async function deleteRule(rid){
+  if(!confirm('حذف القاعدة؟'))return;
+  try{
+    await fetch(`${BOT_API}/api/rules/delete`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uid:UID,rule_id:rid})
+    });
+    toast('🗑 تم الحذف');
+    loadAllRules();loadPostRules();
+  }catch(e){}
+}
+
+// ══ Start ══
+init();
+</script>
+</body>
+</html>
